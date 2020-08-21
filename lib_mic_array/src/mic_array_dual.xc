@@ -311,7 +311,6 @@ void mic_dual_pdm_rx_decimate(buffered in port:32 p_pdm_mic, streaming chanend c
 
   unsigned delay_line[MIC_DUAL_NUM_CHANNELS][2] = {{0xaaaaaaaa, 0x55555555}, {0xaaaaaaaa, 0x55555555}}; //48 taps, init to pdm zero
   int [[aligned(8)]] out_first_stage[MIC_DUAL_NUM_CHANNELS][4] = {{0}};
-
   unsigned mid_stage_delay_idx = 0;
   const unsigned mid_stage_decimation_factor = 4;
   const unsigned mid_stage_ntaps = 16;
