@@ -4,7 +4,16 @@
 
 #include <stdint.h>
 #include "mic_array_conf.h"
-#include "dsp_fft.h"
+// #include "dsp_fft.h"
+
+/** Type that represents a complex number. Both the real and imaginary
+ * parts are represented as 32-bit fixed point values, with a Q value that
+ * is dependent on the use case
+ */
+typedef struct {
+    int32_t re;
+    int32_t im;
+} dsp_complex_t;
 
 #ifndef MIC_DUAL_ENABLED
     #define MIC_DUAL_ENABLED (0)

@@ -7,7 +7,7 @@
 #include <print.h>
 #include "mic_array.h"                    //FRAME SIZE and coeffs
 extern const int [[aligned(8)]] g_third_stage_div_6_fir_dual[192]; //From fir_coefs_dual.xc. We make a LL aligned copy of this
-#include "dsp_qformat.h"                  //Gain compensation
+#define Q28(f) (int)((signed long long)((f) * ((unsigned long long)1 << (28+20)) + (1<<19)) >> 20)
 
 #if (defined(MIC_DUAL_ENABLED) && (MIC_DUAL_ENABLED == 0))
 #undef MIC_DUAL_ENABLED
