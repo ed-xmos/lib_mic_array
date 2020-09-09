@@ -26,7 +26,9 @@ extern const int [[aligned(8)]] g_third_stage_div_6_fir_dual[192]; //From fir_co
   #define MIC_DUAL_NUM_OUT_BUFFERS          2             //Single (1) or double (2) buffered
 #endif
 #define MIC_DUAL_NUM_CHANNELS             2             //Always 2 because it's a pair of mics we are decimating
-#define MIC_DUAL_NUM_REF_CHANNELS         2             //Always 2 in xvf3510 case
+#ifndef MIC_DUAL_NUM_REF_CHANNELS
+  #define MIC_DUAL_NUM_REF_CHANNELS         2             //Always 2 in xvf3510 case. Can also be set to zero
+#endif
 
 
 #pragma unsafe arrays
@@ -306,8 +308,10 @@ static int dc_eliminate(int x, int &prev_x, long long &state){
 void mic_dual_pdm_rx_decimate(buffered in port:32 p_pdm_mic, streaming chanend c_2x_pdm_mic, streaming chanend c_ref_audio[]){
 
   //Send initial request to UBM
-  c_ref_audio[0] <: 0;
-  c_ref_audio[1] <: 0;
+  #if MIC_DUAL_NUM_REF_CHANNELS
+    c_ref_audio[0] <: 0;
+    c_ref_audio[1] <: 0;
+  #endif
 
   unsigned delay_line[MIC_DUAL_NUM_CHANNELS][2] = {{0xaaaaaaaa, 0x55555555}, {0xaaaaaaaa, 0x55555555}}; //48 taps, init to pdm zero
   int [[aligned(8)]] out_first_stage[MIC_DUAL_NUM_CHANNELS][4] = {{0}};
@@ -400,23 +404,25 @@ void mic_dual_pdm_rx_decimate(buffered in port:32 p_pdm_mic, streaming chanend c
       //printintln(pcm_output[0]);
 
       //If we have reached stage 6 then we are ready to send a pair of decimated 16kHz mic signals
-      //and also receive reference audio
-      unsigned ref_audio[MIC_DUAL_NUM_REF_CHANNELS];
-      select{
-        case c_ref_audio[0] :> ref_audio[0]:
-          for (int ch = 1; ch < MIC_DUAL_NUM_REF_CHANNELS; ch++) c_ref_audio[ch] :> ref_audio[ch];
-          //Request some more samples
-          for (int ch = 0; ch < MIC_DUAL_NUM_REF_CHANNELS; ch++) c_ref_audio[ch] <: 0;
-        break;
-        default:
-        //The host doesn't start sending ref audio for a while at startup so we have to be prepared for nothing on channel
-        //printstr("."); //This is debug and can be removed
-        #pragma loop unroll
-        for (int ch = 0; ch < MIC_DUAL_NUM_REF_CHANNELS; ch++){
-            ref_audio[ch] = 0;
+      //and also receive reference audio if needed
+      #if MIC_DUAL_NUM_REF_CHANNELS
+        unsigned ref_audio[MIC_DUAL_NUM_REF_CHANNELS];
+        select{
+          case c_ref_audio[0] :> ref_audio[0]:
+            for (int ch = 1; ch < MIC_DUAL_NUM_REF_CHANNELS; ch++) c_ref_audio[ch] :> ref_audio[ch];
+            //Request some more samples
+            for (int ch = 0; ch < MIC_DUAL_NUM_REF_CHANNELS; ch++) c_ref_audio[ch] <: 0;
+          break;
+          default:
+            //The host doesn't start sending ref audio for a while at startup so we have to be prepared for nothing on channel
+            //printstr("."); //This is debug and can be removed
+            #pragma loop unroll
+            for (int ch = 0; ch < MIC_DUAL_NUM_REF_CHANNELS; ch++){
+              ref_audio[ch] = 0;
+            }
+          break;
         }
-        break;
-      }
+      #endif
 
       #pragma loop unroll
       for (int ch = 0; ch < MIC_DUAL_NUM_CHANNELS; ch++){
@@ -425,9 +431,11 @@ void mic_dual_pdm_rx_decimate(buffered in port:32 p_pdm_mic, streaming chanend c
         pcm_output[ch] = (int)( ( (long long)pcm_output[ch] * Q28(MIC_DUAL_GAIN_COMPENSATION) ) >> (28));
         output_block[block_buffer_idx][block_sample_count][ch] = pcm_output[ch];
       }
-      for (int ch = 0; ch < MIC_DUAL_NUM_REF_CHANNELS; ch++){
-        output_block[block_buffer_idx][block_sample_count][MIC_DUAL_NUM_CHANNELS + ch] = ref_audio[ch];
-      }
+      #if MIC_DUAL_NUM_REF_CHANNELS
+        for (int ch = 0; ch < MIC_DUAL_NUM_REF_CHANNELS; ch++){
+          output_block[block_buffer_idx][block_sample_count][MIC_DUAL_NUM_CHANNELS + ch] = ref_audio[ch];
+        }
+      #endif
       block_sample_count++;
       //We have assembled a block so pass a pointer to the consumer
       if (block_sample_count == MIC_DUAL_OUTPUT_BLOCK_SIZE){
