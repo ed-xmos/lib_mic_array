@@ -15,7 +15,7 @@ list( APPEND  APP_INCLUDES ${DEMO_COMMON_INCLUDES} )
 # sources
 #**********************
 
-file( GLOB_RECURSE APP_SOURCES "src/*.c" "src/*.xc" "src/*.cpp" "src/*.S"   )
+file( GLOB_RECURSE APP_SOURCES src/app.cpp main.xc  )
 list( APPEND  APP_SOURCES  ${DEMO_COMMON_SOURCES} )
 
 #**********************
@@ -24,7 +24,7 @@ list( APPEND  APP_SOURCES  ${DEMO_COMMON_SOURCES} )
 
 set( NAME_MAP thread;isr )
 
-foreach( N_MICS  1 2 )
+foreach( N_MICS 1 2 4 6 8 16 )
   foreach( USE_ISR   1 0 )
 
     list( GET NAME_MAP ${USE_ISR} tmp )

@@ -34,7 +34,7 @@ int main() {
       printf("Running " APP_NAME "..\n");
 
       eat_audio_frames_task((chanend_t) c_audio_frames, 
-                            N_MICS*SAMPLES_PER_FRAME);
+                            MIC_ARRAY_CONFIG_MIC_COUNT*SAMPLES_PER_FRAME);
     }
 
 
